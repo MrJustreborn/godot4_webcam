@@ -31,9 +31,9 @@
 #ifndef GDSCRIPT_PARSER_H
 #define GDSCRIPT_PARSER_H
 
-#include "core/io/multiplayer_api.h"
 #include "core/io/resource.h"
-#include "core/object/reference.h"
+#include "core/multiplayer/multiplayer.h"
+#include "core/object/ref_counted.h"
 #include "core/object/script_language.h"
 #include "core/string/string_name.h"
 #include "core/string/ustring.h"
@@ -160,6 +160,10 @@ public:
 			};
 			container_element_type = nullptr;
 		}
+
+		bool is_typed_container_type() const;
+
+		GDScriptParser::DataType get_typed_container_type() const;
 
 		bool operator==(const DataType &p_other) const {
 			if (type_source == UNDETECTED || p_other.type_source == UNDETECTED) {
@@ -370,6 +374,7 @@ public:
 		Variant::Operator variant_op = Variant::OP_MAX;
 		ExpressionNode *assignee = nullptr;
 		ExpressionNode *assigned_value = nullptr;
+		bool use_conversion_assign = false;
 
 		AssignmentNode() {
 			type = ASSIGNMENT;
@@ -728,7 +733,7 @@ public:
 		SuiteNode *body = nullptr;
 		bool is_static = false;
 		bool is_coroutine = false;
-		MultiplayerAPI::RPCMode rpc_mode = MultiplayerAPI::RPC_MODE_DISABLED;
+		Multiplayer::RPCConfig rpc_config;
 		MethodInfo info;
 		LambdaNode *source_lambda = nullptr;
 #ifdef TOOLS_ENABLED
@@ -1104,21 +1109,21 @@ public:
 
 		PropertyStyle property = PROP_NONE;
 		union {
-			SuiteNode *setter = nullptr;
+			FunctionNode *setter = nullptr;
 			IdentifierNode *setter_pointer;
 		};
 		IdentifierNode *setter_parameter = nullptr;
 		union {
-			SuiteNode *getter = nullptr;
+			FunctionNode *getter = nullptr;
 			IdentifierNode *getter_pointer;
 		};
 
 		bool exported = false;
 		bool onready = false;
 		PropertyInfo export_info;
-		MultiplayerAPI::RPCMode rpc_mode = MultiplayerAPI::RPC_MODE_DISABLED;
 		int assignments = 0;
 		int usages = 0;
+		bool use_conversion_assign = false;
 #ifdef TOOLS_ENABLED
 		String doc_description;
 #endif // TOOLS_ENABLED
@@ -1319,7 +1324,7 @@ private:
 	ClassNode *parse_class();
 	void parse_class_name();
 	void parse_extends();
-	void parse_class_body();
+	void parse_class_body(bool p_is_multiline);
 	template <class T>
 	void parse_class_member(T *(GDScriptParser::*p_parse_function)(), AnnotationInfo::TargetKind p_target, const String &p_member_kind);
 	SignalNode *parse_signal();
@@ -1339,7 +1344,7 @@ private:
 	template <PropertyHint t_hint, Variant::Type t_type>
 	bool export_annotations(const AnnotationNode *p_annotation, Node *p_target);
 	bool warning_annotations(const AnnotationNode *p_annotation, Node *p_target);
-	template <MultiplayerAPI::RPCMode t_mode>
+	template <Multiplayer::RPCMode t_mode>
 	bool network_annotations(const AnnotationNode *p_annotation, Node *p_target);
 	// Statements.
 	Node *parse_statement();
@@ -1383,6 +1388,7 @@ private:
 	ExpressionNode *parse_attribute(ExpressionNode *p_previous_operand, bool p_can_assign);
 	ExpressionNode *parse_subscript(ExpressionNode *p_previous_operand, bool p_can_assign);
 	ExpressionNode *parse_lambda(ExpressionNode *p_previous_operand, bool p_can_assign);
+	ExpressionNode *parse_yield(ExpressionNode *p_previous_operand, bool p_can_assign);
 	ExpressionNode *parse_invalid_token(ExpressionNode *p_previous_operand, bool p_can_assign);
 	TypeNode *parse_type(bool p_allow_void = false);
 #ifdef TOOLS_ENABLED
@@ -1398,7 +1404,6 @@ public:
 	ClassNode *get_tree() const { return head; }
 	bool is_tool() const { return _is_tool; }
 	static Variant::Type get_builtin_type(const StringName &p_type);
-	static StringName get_real_class_name(const StringName &p_source);
 
 	CompletionContext get_completion_context() const { return completion_context; }
 	CompletionCall get_completion_call() const { return completion_call; }
@@ -1430,7 +1435,7 @@ public:
 		void push_line(const String &p_line = String());
 		void push_text(const String &p_text);
 
-		void print_annotation(AnnotationNode *p_annotation);
+		void print_annotation(const AnnotationNode *p_annotation);
 		void print_array(ArrayNode *p_array);
 		void print_assert(AssertNode *p_assert);
 		void print_assignment(AssignmentNode *p_assignment);

@@ -60,7 +60,7 @@ public:
 
 		void update_mips();
 
-		_FORCE_INLINE_ bool is_occluded(const float p_bounds[6], const Vector3 &p_cam_position, const Transform &p_cam_inv_transform, const CameraMatrix &p_cam_projection, float p_near) const {
+		_FORCE_INLINE_ bool is_occluded(const real_t p_bounds[6], const Vector3 &p_cam_position, const Transform3D &p_cam_inv_transform, const CameraMatrix &p_cam_projection, real_t p_near) const {
 			if (is_empty()) {
 				return false;
 			}
@@ -76,26 +76,28 @@ public:
 				return false;
 			}
 
-			float min_depth;
-			if (p_cam_projection.is_orthogonal()) {
-				min_depth = (-closest_point_view.z) - p_near;
-			} else {
-				float r = -p_near / closest_point_view.z;
-				Vector3 closest_point_proj = Vector3(closest_point_view.x * r, closest_point_view.y * r, -p_near);
-				min_depth = closest_point_proj.distance_to(closest_point_view);
-			}
+			float min_depth = -closest_point_view.z * 0.95f;
 
 			Vector2 rect_min = Vector2(FLT_MAX, FLT_MAX);
 			Vector2 rect_max = Vector2(FLT_MIN, FLT_MIN);
 
 			for (int j = 0; j < 8; j++) {
-				Vector3 c = RendererSceneOcclusionCull::HZBuffer::corners[j];
+				const Vector3 &c = RendererSceneOcclusionCull::HZBuffer::corners[j];
 				Vector3 nc = Vector3(1, 1, 1) - c;
 				Vector3 corner = Vector3(p_bounds[0] * c.x + p_bounds[3] * nc.x, p_bounds[1] * c.y + p_bounds[4] * nc.y, p_bounds[2] * c.z + p_bounds[5] * nc.z);
 				Vector3 view = p_cam_inv_transform.xform(corner);
 
-				Vector3 projected = p_cam_projection.xform(view);
-				Vector2 normalized = Vector2(projected.x * 0.5f + 0.5f, projected.y * 0.5f + 0.5f);
+				Plane vp = Plane(view, 1.0);
+				Plane projected = p_cam_projection.xform4(vp);
+
+				float w = projected.d;
+				if (w < 1.0) {
+					rect_min = Vector2(0.0f, 0.0f);
+					rect_max = Vector2(1.0f, 1.0f);
+					break;
+				}
+
+				Vector2 normalized = Vector2(projected.normal.x / w * 0.5f + 0.5f, projected.normal.y / w * 0.5f + 0.5f);
 				rect_min = rect_min.min(normalized);
 				rect_max = rect_max.max(normalized);
 			}
@@ -171,7 +173,7 @@ public:
 
 	virtual void add_scenario(RID p_scenario) {}
 	virtual void remove_scenario(RID p_scenario) {}
-	virtual void scenario_set_instance(RID p_scenario, RID p_instance, RID p_occluder, const Transform &p_xform, bool p_enabled) { _print_warining(); }
+	virtual void scenario_set_instance(RID p_scenario, RID p_instance, RID p_occluder, const Transform3D &p_xform, bool p_enabled) { _print_warining(); }
 	virtual void scenario_remove_instance(RID p_scenario, RID p_instance) { _print_warining(); }
 
 	virtual void add_buffer(RID p_buffer) { _print_warining(); }
@@ -181,7 +183,7 @@ public:
 	}
 	virtual void buffer_set_scenario(RID p_buffer, RID p_scenario) { _print_warining(); }
 	virtual void buffer_set_size(RID p_buffer, const Vector2i &p_size) { _print_warining(); }
-	virtual void buffer_update(RID p_buffer, const Transform &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, ThreadWorkPool &p_thread_pool) {}
+	virtual void buffer_update(RID p_buffer, const Transform3D &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, ThreadWorkPool &p_thread_pool) {}
 	virtual RID buffer_get_debug_texture(RID p_buffer) {
 		_print_warining();
 		return RID();

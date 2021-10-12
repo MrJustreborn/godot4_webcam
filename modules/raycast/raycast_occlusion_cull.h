@@ -34,7 +34,7 @@
 #include "core/io/image.h"
 #include "core/math/camera_matrix.h"
 #include "core/object/object.h"
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 #include "core/templates/local_vector.h"
 #include "core/templates/rid_owner.h"
 #include "scene/resources/mesh.h"
@@ -43,33 +43,42 @@
 #include <embree3/rtcore.h>
 
 class RaycastOcclusionCull : public RendererSceneOcclusionCull {
-	typedef RTCRayHit16 RayPacket;
+	typedef RTCRayHit16 CameraRayTile;
 
 public:
 	class RaycastHZBuffer : public HZBuffer {
 	private:
-		Size2i packs_size;
+		Size2i tile_grid_size;
 
 		struct CameraRayThreadData {
-			CameraMatrix camera_matrix;
-			Transform camera_transform;
-			bool camera_orthogonal;
 			int thread_count;
+			float z_near;
+			float z_far;
+			Vector3 camera_dir;
+			Vector3 camera_pos;
+			Vector3 pixel_corner;
+			Vector3 pixel_u_interp;
+			Vector3 pixel_v_interp;
+			bool camera_orthogonal;
 			Size2i buffer_size;
 		};
 
-		void _camera_rays_threaded(uint32_t p_thread, CameraRayThreadData *p_data);
-		void _generate_camera_rays(const Transform &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, int p_from, int p_to);
+		void _camera_rays_threaded(uint32_t p_thread, const CameraRayThreadData *p_data);
+		void _generate_camera_rays(const CameraRayThreadData *p_data, int p_from, int p_to);
 
 	public:
-		LocalVector<RayPacket> camera_rays;
+		unsigned int camera_rays_tile_count = 0;
+		uint8_t *camera_rays_unaligned_buffer = nullptr;
+		CameraRayTile *camera_rays = nullptr;
 		LocalVector<uint32_t> camera_ray_masks;
 		RID scenario_rid;
 
 		virtual void clear() override;
 		virtual void resize(const Size2i &p_size) override;
-		void sort_rays();
-		void update_camera_rays(const Transform &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, ThreadWorkPool &p_thread_work_pool);
+		void sort_rays(const Vector3 &p_camera_dir, bool p_orthogonal);
+		void update_camera_rays(const Transform3D &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, ThreadWorkPool &p_thread_work_pool);
+
+		~RaycastHZBuffer();
 	};
 
 private:
@@ -99,21 +108,21 @@ private:
 		RID occluder;
 		LocalVector<uint32_t> indices;
 		LocalVector<Vector3> xformed_vertices;
-		Transform xform;
+		Transform3D xform;
 		bool enabled = true;
 		bool removed = false;
 	};
 
 	struct Scenario {
 		struct RaycastThreadData {
-			RayPacket *rays;
+			CameraRayTile *rays;
 			const uint32_t *masks;
 		};
 
 		struct TransformThreadData {
 			uint32_t thread_count;
 			uint32_t vertex_count;
-			Transform xform;
+			Transform3D xform;
 			const Vector3 *read;
 			Vector3 *write;
 		};
@@ -134,12 +143,12 @@ private:
 		void _update_dirty_instance_thread(int p_idx, RID *p_instances);
 		void _update_dirty_instance(int p_idx, RID *p_instances, ThreadWorkPool *p_thread_pool);
 		void _transform_vertices_thread(uint32_t p_thread, TransformThreadData *p_data);
-		void _transform_vertices_range(const Vector3 *p_read, Vector3 *p_write, const Transform &p_xform, int p_from, int p_to);
+		void _transform_vertices_range(const Vector3 *p_read, Vector3 *p_write, const Transform3D &p_xform, int p_from, int p_to);
 		static void _commit_scene(void *p_ud);
 		bool update(ThreadWorkPool &p_thread_pool);
 
 		void _raycast(uint32_t p_thread, const RaycastThreadData *p_raycast_data) const;
-		void raycast(LocalVector<RayPacket> &r_rays, const LocalVector<uint32_t> p_valid_masks, ThreadWorkPool &p_thread_pool) const;
+		void raycast(CameraRayTile *r_rays, const uint32_t *p_valid_masks, uint32_t p_tile_count, ThreadWorkPool &p_thread_pool) const;
 	};
 
 	static RaycastOcclusionCull *raycast_singleton;
@@ -164,7 +173,7 @@ public:
 
 	virtual void add_scenario(RID p_scenario) override;
 	virtual void remove_scenario(RID p_scenario) override;
-	virtual void scenario_set_instance(RID p_scenario, RID p_instance, RID p_occluder, const Transform &p_xform, bool p_enabled) override;
+	virtual void scenario_set_instance(RID p_scenario, RID p_instance, RID p_occluder, const Transform3D &p_xform, bool p_enabled) override;
 	virtual void scenario_remove_instance(RID p_scenario, RID p_instance) override;
 
 	virtual void add_buffer(RID p_buffer) override;
@@ -172,7 +181,7 @@ public:
 	virtual HZBuffer *buffer_get_ptr(RID p_buffer) override;
 	virtual void buffer_set_scenario(RID p_buffer, RID p_scenario) override;
 	virtual void buffer_set_size(RID p_buffer, const Vector2i &p_size) override;
-	virtual void buffer_update(RID p_buffer, const Transform &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, ThreadWorkPool &p_thread_pool) override;
+	virtual void buffer_update(RID p_buffer, const Transform3D &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, ThreadWorkPool &p_thread_pool) override;
 	virtual RID buffer_get_debug_texture(RID p_buffer) override;
 
 	virtual void set_build_quality(RS::ViewportOcclusionCullingBuildQuality p_quality) override;

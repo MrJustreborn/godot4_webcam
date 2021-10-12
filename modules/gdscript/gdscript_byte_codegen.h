@@ -153,12 +153,12 @@ class GDScriptByteCodeGenerator : public GDScriptCodeGenerator {
 #endif
 		locals.resize(current_locals);
 		if (debug_stack) {
-			for (Map<StringName, int>::Element *E = block_identifiers.front(); E; E = E->next()) {
+			for (const KeyValue<StringName, int> &E : block_identifiers) {
 				GDScriptFunction::StackDebug sd;
 				sd.added = false;
-				sd.identifier = E->key();
+				sd.identifier = E.key;
 				sd.line = current_line;
-				sd.pos = E->get();
+				sd.pos = E.value;
 				stack_debug.push_back(sd);
 			}
 			block_identifiers = block_identifier_stack.back()->get();
@@ -419,7 +419,7 @@ public:
 	virtual void start_block() override;
 	virtual void end_block() override;
 
-	virtual void write_start(GDScript *p_script, const StringName &p_function_name, bool p_static, MultiplayerAPI::RPCMode p_rpc_mode, const GDScriptDataType &p_return_type) override;
+	virtual void write_start(GDScript *p_script, const StringName &p_function_name, bool p_static, Multiplayer::RPCConfig p_rpc_config, const GDScriptDataType &p_return_type) override;
 	virtual GDScriptFunction *write_end() override;
 
 #ifdef DEBUG_ENABLED
@@ -450,9 +450,11 @@ public:
 	virtual void write_set_member(const Address &p_value, const StringName &p_name) override;
 	virtual void write_get_member(const Address &p_target, const StringName &p_name) override;
 	virtual void write_assign(const Address &p_target, const Address &p_source) override;
+	virtual void write_assign_with_conversion(const Address &p_target, const Address &p_source) override;
 	virtual void write_assign_true(const Address &p_target) override;
 	virtual void write_assign_false(const Address &p_target) override;
 	virtual void write_assign_default_parameter(const Address &p_dst, const Address &p_src) override;
+	virtual void write_store_global(const Address &p_dst, int p_global_index) override;
 	virtual void write_store_named_global(const Address &p_dst, const StringName &p_global) override;
 	virtual void write_cast(const Address &p_target, const Address &p_source, const GDScriptDataType &p_type) override;
 	virtual void write_call(const Address &p_target, const Address &p_base, const StringName &p_function_name, const Vector<Address> &p_arguments) override;
@@ -461,6 +463,7 @@ public:
 	virtual void write_call_utility(const Address &p_target, const StringName &p_function, const Vector<Address> &p_arguments) override;
 	virtual void write_call_gdscript_utility(const Address &p_target, GDScriptUtilityFunctions::FunctionPtr p_function, const Vector<Address> &p_arguments) override;
 	virtual void write_call_builtin_type(const Address &p_target, const Address &p_base, Variant::Type p_type, const StringName &p_method, const Vector<Address> &p_arguments) override;
+	virtual void write_call_builtin_type_static(const Address &p_target, Variant::Type p_type, const StringName &p_method, const Vector<Address> &p_arguments) override;
 	virtual void write_call_method_bind(const Address &p_target, const Address &p_base, MethodBind *p_method, const Vector<Address> &p_arguments) override;
 	virtual void write_call_ptrcall(const Address &p_target, const Address &p_base, MethodBind *p_method, const Vector<Address> &p_arguments) override;
 	virtual void write_call_self(const Address &p_target, const StringName &p_function_name, const Vector<Address> &p_arguments) override;

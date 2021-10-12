@@ -108,7 +108,7 @@ class CapsuleMesh : public PrimitiveMesh {
 
 private:
 	float radius = 1.0;
-	float mid_height = 1.0;
+	float height = 3.0;
 	int radial_segments = 64;
 	int rings = 8;
 
@@ -120,8 +120,8 @@ public:
 	void set_radius(const float p_radius);
 	float get_radius() const;
 
-	void set_mid_height(const float p_mid_height);
-	float get_mid_height() const;
+	void set_height(const float p_height);
+	float get_height() const;
 
 	void set_radial_segments(const int p_segments);
 	int get_radial_segments() const;
@@ -211,6 +211,7 @@ private:
 	Size2 size = Size2(2.0, 2.0);
 	int subdivide_w = 0;
 	int subdivide_d = 0;
+	Vector3 center_offset;
 
 protected:
 	static void _bind_methods();
@@ -225,6 +226,9 @@ public:
 
 	void set_subdivide_depth(const int p_divisions);
 	int get_subdivide_depth() const;
+
+	void set_center_offset(const Vector3 p_offset);
+	Vector3 get_center_offset() const;
 
 	PlaneMesh();
 };
@@ -274,16 +278,22 @@ class QuadMesh : public PrimitiveMesh {
 
 private:
 	Size2 size = Size2(1.0, 1.0);
+	Vector3 center_offset;
 
 protected:
 	static void _bind_methods();
 	virtual void _create_mesh_array(Array &p_arr) const override;
 
 public:
+	virtual uint32_t surface_get_format(int p_idx) const override;
+
 	QuadMesh();
 
 	void set_size(const Size2 &p_size);
 	Size2 get_size() const;
+
+	void set_center_offset(const Vector3 p_offset);
+	Vector3 get_center_offset() const;
 };
 
 /**
@@ -374,7 +384,7 @@ public:
 	Ref<Curve> get_curve() const;
 
 	virtual int get_builtin_bind_pose_count() const override;
-	virtual Transform get_builtin_bind_pose(int p_index) const override;
+	virtual Transform3D get_builtin_bind_pose(int p_index) const override;
 
 	TubeTrailMesh();
 };
@@ -424,7 +434,7 @@ public:
 	Ref<Curve> get_curve() const;
 
 	virtual int get_builtin_bind_pose_count() const override;
-	virtual Transform get_builtin_bind_pose(int p_index) const override;
+	virtual Transform3D get_builtin_bind_pose(int p_index) const override;
 
 	RibbonTrailMesh();
 };

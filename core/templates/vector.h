@@ -40,6 +40,7 @@
 #include "core/error/error_macros.h"
 #include "core/os/memory.h"
 #include "core/templates/cowdata.h"
+#include "core/templates/search_array.h"
 #include "core/templates/sort_array.h"
 
 template <class T>
@@ -92,7 +93,7 @@ public:
 
 	void append_array(Vector<T> p_other);
 
-	bool has(const T &p_val) {
+	bool has(const T &p_val) const {
 		return find(p_val, 0) != -1;
 	}
 
@@ -110,6 +111,11 @@ public:
 
 	void sort() {
 		sort_custom<_DefaultComparator<T>>();
+	}
+
+	int bsearch(const T &p_value, bool p_before) {
+		SearchArray<T> search;
+		return search.bisect(ptrw(), size(), p_value, p_before);
 	}
 
 	Vector<T> duplicate() {
@@ -185,6 +191,70 @@ public:
 			}
 		}
 		return false;
+	}
+
+	struct Iterator {
+		_FORCE_INLINE_ T &operator*() const {
+			return *elem_ptr;
+		}
+		_FORCE_INLINE_ T *operator->() const { return elem_ptr; }
+		_FORCE_INLINE_ Iterator &operator++() {
+			elem_ptr++;
+			return *this;
+		}
+		_FORCE_INLINE_ Iterator &operator--() {
+			elem_ptr--;
+			return *this;
+		}
+
+		_FORCE_INLINE_ bool operator==(const Iterator &b) const { return elem_ptr == b.elem_ptr; }
+		_FORCE_INLINE_ bool operator!=(const Iterator &b) const { return elem_ptr != b.elem_ptr; }
+
+		Iterator(T *p_ptr) { elem_ptr = p_ptr; }
+		Iterator() {}
+		Iterator(const Iterator &p_it) { elem_ptr = p_it.elem_ptr; }
+
+	private:
+		T *elem_ptr = nullptr;
+	};
+
+	struct ConstIterator {
+		_FORCE_INLINE_ const T &operator*() const {
+			return *elem_ptr;
+		}
+		_FORCE_INLINE_ const T *operator->() const { return elem_ptr; }
+		_FORCE_INLINE_ ConstIterator &operator++() {
+			elem_ptr++;
+			return *this;
+		}
+		_FORCE_INLINE_ ConstIterator &operator--() {
+			elem_ptr--;
+			return *this;
+		}
+
+		_FORCE_INLINE_ bool operator==(const ConstIterator &b) const { return elem_ptr == b.elem_ptr; }
+		_FORCE_INLINE_ bool operator!=(const ConstIterator &b) const { return elem_ptr != b.elem_ptr; }
+
+		ConstIterator(const T *p_ptr) { elem_ptr = p_ptr; }
+		ConstIterator() {}
+		ConstIterator(const ConstIterator &p_it) { elem_ptr = p_it.elem_ptr; }
+
+	private:
+		const T *elem_ptr = nullptr;
+	};
+
+	_FORCE_INLINE_ Iterator begin() {
+		return Iterator(ptrw());
+	}
+	_FORCE_INLINE_ Iterator end() {
+		return Iterator(ptrw() + size());
+	}
+
+	_FORCE_INLINE_ ConstIterator begin() const {
+		return ConstIterator(ptr());
+	}
+	_FORCE_INLINE_ ConstIterator end() const {
+		return ConstIterator(ptr() + size());
 	}
 
 	_FORCE_INLINE_ Vector() {}

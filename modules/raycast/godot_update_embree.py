@@ -11,6 +11,7 @@ include_dirs = [
     "common/algorithms",
     "common/lexers",
     "common/simd",
+    "common/simd/arm",
     "include/embree3",
     "kernels/subdiv",
     "kernels/geometry",
@@ -32,16 +33,6 @@ cpp_files = [
     "common/lexers/stringstream.cpp",
     "common/lexers/tokenstream.cpp",
     "common/tasking/taskschedulerinternal.cpp",
-    "common/algorithms/parallel_for.cpp",
-    "common/algorithms/parallel_reduce.cpp",
-    "common/algorithms/parallel_prefix_sum.cpp",
-    "common/algorithms/parallel_for_for.cpp",
-    "common/algorithms/parallel_for_for_prefix_sum.cpp",
-    "common/algorithms/parallel_partition.cpp",
-    "common/algorithms/parallel_sort.cpp",
-    "common/algorithms/parallel_set.cpp",
-    "common/algorithms/parallel_map.cpp",
-    "common/algorithms/parallel_filter.cpp",
     "kernels/common/device.cpp",
     "kernels/common/stat.cpp",
     "kernels/common/acceln.cpp",
@@ -70,15 +61,20 @@ cpp_files = [
     "kernels/bvh/bvh_builder_twolevel.cpp",
     "kernels/bvh/bvh_intersector1.cpp",
     "kernels/bvh/bvh_intersector1_bvh4.cpp",
+    "kernels/bvh/bvh_intersector_hybrid4_bvh4.cpp",
+    "kernels/bvh/bvh_intersector_stream_bvh4.cpp",
+    "kernels/bvh/bvh_intersector_stream_filters.cpp",
+    "kernels/bvh/bvh_intersector_hybrid.cpp",
+    "kernels/bvh/bvh_intersector_stream.cpp",
 ]
 
 os.chdir("../../thirdparty")
 
-dir_name = "embree-aarch64"
+dir_name = "embree"
 if os.path.exists(dir_name):
     shutil.rmtree(dir_name)
 
-subprocess.run(["git", "clone", "https://github.com/lighttransport/embree-aarch64.git", "embree-tmp"])
+subprocess.run(["git", "clone", "https://github.com/embree/embree.git", "embree-tmp"])
 os.chdir("embree-tmp")
 
 commit_hash = str(subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True)).strip()
@@ -126,7 +122,7 @@ with open(os.path.join(dest_dir, "kernels/config.h"), "w") as config_file:
 /* #undef EMBREE_GEOMETRY_INSTANCE */
 /* #undef EMBREE_GEOMETRY_GRID */
 /* #undef EMBREE_GEOMETRY_POINT */
-/* #undef EMBREE_RAY_PACKETS */
+#define EMBREE_RAY_PACKETS
 /* #undef EMBREE_COMPACT_POLYS */
 
 #define EMBREE_CURVE_SELF_INTERSECTION_AVOIDANCE_FACTOR 2.0
@@ -197,7 +193,7 @@ with open("CMakeLists.txt", "r") as cmake_file:
 with open(os.path.join(dest_dir, "include/embree3/rtcore_config.h"), "w") as config_file:
     config_file.write(
         f"""
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -258,3 +254,8 @@ with open(os.path.join(dest_dir, "include/embree3/rtcore_config.h"), "w") as con
 
 os.chdir("..")
 shutil.rmtree("embree-tmp")
+
+subprocess.run(["git", "restore", "embree/patches"])
+
+for patch in os.listdir("embree/patches"):
+    subprocess.run(["git", "apply", "embree/patches/" + patch])

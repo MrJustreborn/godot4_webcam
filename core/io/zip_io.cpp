@@ -68,13 +68,13 @@ long zipio_tell(voidpf opaque, voidpf stream) {
 long zipio_seek(voidpf opaque, voidpf stream, uLong offset, int origin) {
 	FileAccess *f = *(FileAccess **)opaque;
 
-	int pos = offset;
+	uint64_t pos = offset;
 	switch (origin) {
 		case ZLIB_FILEFUNC_SEEK_CUR:
 			pos = f->get_position() + offset;
 			break;
 		case ZLIB_FILEFUNC_SEEK_END:
-			pos = f->get_len() + offset;
+			pos = f->get_length() + offset;
 			break;
 		default:
 			break;
@@ -100,7 +100,7 @@ int zipio_testerror(voidpf opaque, voidpf stream) {
 }
 
 voidpf zipio_alloc(voidpf opaque, uInt items, uInt size) {
-	voidpf ptr = memalloc(items * size);
+	voidpf ptr = memalloc((size_t)items * size);
 	memset(ptr, 0, items * size);
 	return ptr;
 }

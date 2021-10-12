@@ -32,13 +32,9 @@
 
 #include "lightmap_raycaster.h"
 
-// From Embree.
-#include <math/vec2.h>
-#include <math/vec3.h>
-
+#ifdef __SSE2__
 #include <pmmintrin.h>
-
-using namespace embree;
+#endif
 
 LightmapRaycaster *LightmapRaycasterEmbree::create_embree_raycaster() {
 	return memnew(LightmapRaycasterEmbree);
@@ -127,23 +123,22 @@ void LightmapRaycasterEmbree::add_mesh(const Vector<Vector3> &p_vertices, const 
 
 	ERR_FAIL_COND(vertex_count % 3 != 0);
 	ERR_FAIL_COND(vertex_count != p_uv2s.size());
+	ERR_FAIL_COND(!p_normals.is_empty() && vertex_count != p_normals.size());
 
-	Vec3fa *embree_vertices = (Vec3fa *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Vec3fa), vertex_count);
-	Vec2fa *embree_light_uvs = (Vec2fa *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT2, sizeof(Vec2fa), vertex_count);
+	Vector3 *embree_vertices = (Vector3 *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Vector3), vertex_count);
+	memcpy(embree_vertices, p_vertices.ptr(), sizeof(Vector3) * vertex_count);
+
+	Vector2 *embree_light_uvs = (Vector2 *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT2, sizeof(Vector2), vertex_count);
+	memcpy(embree_light_uvs, p_uv2s.ptr(), sizeof(Vector2) * vertex_count);
+
 	uint32_t *embree_triangles = (uint32_t *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(uint32_t) * 3, vertex_count / 3);
-
-	Vec3fa *embree_normals = nullptr;
-	if (!p_normals.is_empty()) {
-		embree_normals = (Vec3fa *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3, sizeof(Vec3fa), vertex_count);
+	for (int i = 0; i < vertex_count; i++) {
+		embree_triangles[i] = i;
 	}
 
-	for (int i = 0; i < vertex_count; i++) {
-		embree_vertices[i] = Vec3fa(p_vertices[i].x, p_vertices[i].y, p_vertices[i].z);
-		embree_light_uvs[i] = Vec2fa(p_uv2s[i].x, p_uv2s[i].y);
-		if (embree_normals != nullptr) {
-			embree_normals[i] = Vec3fa(p_normals[i].x, p_normals[i].y, p_normals[i].z);
-		}
-		embree_triangles[i] = i;
+	if (!p_normals.is_empty()) {
+		Vector3 *embree_normals = (Vector3 *)rtcSetNewGeometryBuffer(embree_mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3, sizeof(Vector3), vertex_count);
+		memcpy(embree_normals, p_normals.ptr(), sizeof(Vector3) * vertex_count);
 	}
 
 	rtcCommitGeometry(embree_mesh);
@@ -173,23 +168,22 @@ void LightmapRaycasterEmbree::clear_mesh_filter() {
 	filter_meshes.clear();
 }
 
-void embree_error_handler(void *p_user_data, RTCError p_code, const char *p_str) {
+void embree_lm_error_handler(void *p_user_data, RTCError p_code, const char *p_str) {
 	print_error("Embree error: " + String(p_str));
 }
 
 LightmapRaycasterEmbree::LightmapRaycasterEmbree() {
+#ifdef __SSE2__
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	_MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+#endif
 
 	embree_device = rtcNewDevice(nullptr);
-	rtcSetDeviceErrorFunction(embree_device, &embree_error_handler, nullptr);
+	rtcSetDeviceErrorFunction(embree_device, &embree_lm_error_handler, nullptr);
 	embree_scene = rtcNewScene(embree_device);
 }
 
 LightmapRaycasterEmbree::~LightmapRaycasterEmbree() {
-	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_OFF);
-	_MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_OFF);
-
 	if (embree_scene != nullptr) {
 		rtcReleaseScene(embree_scene);
 	}

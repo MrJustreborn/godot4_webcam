@@ -30,10 +30,7 @@
 
 #include "gpu_particles_3d.h"
 
-#include "core/os/os.h"
 #include "scene/resources/particles_material.h"
-
-#include "servers/rendering_server.h"
 
 AABB GPUParticles3D::get_aabb() const {
 	return AABB();
@@ -59,7 +56,7 @@ void GPUParticles3D::set_amount(int p_amount) {
 	RS::get_singleton()->particles_set_amount(particles, amount);
 }
 
-void GPUParticles3D::set_lifetime(float p_lifetime) {
+void GPUParticles3D::set_lifetime(double p_lifetime) {
 	ERR_FAIL_COND_MSG(p_lifetime <= 0, "Particles lifetime must be greater than 0.");
 	lifetime = p_lifetime;
 	RS::get_singleton()->particles_set_lifetime(particles, lifetime);
@@ -81,17 +78,17 @@ void GPUParticles3D::set_one_shot(bool p_one_shot) {
 	}
 }
 
-void GPUParticles3D::set_pre_process_time(float p_time) {
+void GPUParticles3D::set_pre_process_time(double p_time) {
 	pre_process_time = p_time;
 	RS::get_singleton()->particles_set_pre_process_time(particles, pre_process_time);
 }
 
-void GPUParticles3D::set_explosiveness_ratio(float p_ratio) {
+void GPUParticles3D::set_explosiveness_ratio(real_t p_ratio) {
 	explosiveness_ratio = p_ratio;
 	RS::get_singleton()->particles_set_explosiveness_ratio(particles, explosiveness_ratio);
 }
 
-void GPUParticles3D::set_randomness_ratio(float p_ratio) {
+void GPUParticles3D::set_randomness_ratio(real_t p_ratio) {
 	randomness_ratio = p_ratio;
 	RS::get_singleton()->particles_set_randomness_ratio(particles, randomness_ratio);
 }
@@ -99,7 +96,7 @@ void GPUParticles3D::set_randomness_ratio(float p_ratio) {
 void GPUParticles3D::set_visibility_aabb(const AABB &p_aabb) {
 	visibility_aabb = p_aabb;
 	RS::get_singleton()->particles_set_custom_aabb(particles, visibility_aabb);
-	update_gizmo();
+	update_gizmos();
 }
 
 void GPUParticles3D::set_use_local_coordinates(bool p_enable) {
@@ -118,12 +115,12 @@ void GPUParticles3D::set_process_material(const Ref<Material> &p_material) {
 	update_configuration_warnings();
 }
 
-void GPUParticles3D::set_speed_scale(float p_scale) {
+void GPUParticles3D::set_speed_scale(double p_scale) {
 	speed_scale = p_scale;
 	RS::get_singleton()->particles_set_speed_scale(particles, p_scale);
 }
 
-void GPUParticles3D::set_collision_base_size(float p_size) {
+void GPUParticles3D::set_collision_base_size(real_t p_size) {
 	collision_base_size = p_size;
 	RS::get_singleton()->particles_set_collision_base_size(particles, p_size);
 }
@@ -136,7 +133,7 @@ int GPUParticles3D::get_amount() const {
 	return amount;
 }
 
-float GPUParticles3D::get_lifetime() const {
+double GPUParticles3D::get_lifetime() const {
 	return lifetime;
 }
 
@@ -144,15 +141,15 @@ bool GPUParticles3D::get_one_shot() const {
 	return one_shot;
 }
 
-float GPUParticles3D::get_pre_process_time() const {
+double GPUParticles3D::get_pre_process_time() const {
 	return pre_process_time;
 }
 
-float GPUParticles3D::get_explosiveness_ratio() const {
+real_t GPUParticles3D::get_explosiveness_ratio() const {
 	return explosiveness_ratio;
 }
 
-float GPUParticles3D::get_randomness_ratio() const {
+real_t GPUParticles3D::get_randomness_ratio() const {
 	return randomness_ratio;
 }
 
@@ -168,11 +165,11 @@ Ref<Material> GPUParticles3D::get_process_material() const {
 	return process_material;
 }
 
-float GPUParticles3D::get_speed_scale() const {
+double GPUParticles3D::get_speed_scale() const {
 	return speed_scale;
 }
 
-float GPUParticles3D::get_collision_base_size() const {
+real_t GPUParticles3D::get_collision_base_size() const {
 	return collision_base_size;
 }
 
@@ -181,12 +178,13 @@ void GPUParticles3D::set_draw_order(DrawOrder p_order) {
 	RS::get_singleton()->particles_set_draw_order(particles, RS::ParticlesDrawOrder(p_order));
 }
 
-void GPUParticles3D::set_enable_trail(bool p_enabled) {
+void GPUParticles3D::set_trail_enabled(bool p_enabled) {
 	trail_enabled = p_enabled;
 	RS::get_singleton()->particles_set_trails(particles, trail_enabled, trail_length);
 	update_configuration_warnings();
 }
-void GPUParticles3D::set_trail_length(float p_seconds) {
+
+void GPUParticles3D::set_trail_length(double p_seconds) {
 	ERR_FAIL_COND(p_seconds < 0.001);
 	trail_length = p_seconds;
 	RS::get_singleton()->particles_set_trails(particles, trail_enabled, trail_length);
@@ -195,7 +193,8 @@ void GPUParticles3D::set_trail_length(float p_seconds) {
 bool GPUParticles3D::is_trail_enabled() const {
 	return trail_enabled;
 }
-float GPUParticles3D::get_trail_length() const {
+
+double GPUParticles3D::get_trail_length() const {
 	return trail_length;
 }
 
@@ -313,7 +312,7 @@ TypedArray<String> GPUParticles3D::get_configuration_warnings() const {
 	} else {
 		const ParticlesMaterial *process = Object::cast_to<ParticlesMaterial>(process_material.ptr());
 		if (!anim_material_found && process &&
-				(process->get_param(ParticlesMaterial::PARAM_ANIM_SPEED) != 0.0 || process->get_param(ParticlesMaterial::PARAM_ANIM_OFFSET) != 0.0 ||
+				(process->get_param_max(ParticlesMaterial::PARAM_ANIM_SPEED) != 0.0 || process->get_param_max(ParticlesMaterial::PARAM_ANIM_OFFSET) != 0.0 ||
 						process->get_param_texture(ParticlesMaterial::PARAM_ANIM_SPEED).is_valid() || process->get_param_texture(ParticlesMaterial::PARAM_ANIM_OFFSET).is_valid())) {
 			warnings.push_back(TTR("Particles animation requires the usage of a BaseMaterial3D whose Billboard Mode is set to \"Particle Billboard\"."));
 		}
@@ -385,13 +384,13 @@ void GPUParticles3D::_validate_property(PropertyInfo &property) const {
 	if (property.name.begins_with("draw_pass_")) {
 		int index = property.name.get_slicec('_', 2).to_int() - 1;
 		if (index >= draw_passes.size()) {
-			property.usage = 0;
+			property.usage = PROPERTY_USAGE_NONE;
 			return;
 		}
 	}
 }
 
-void GPUParticles3D::emit_particle(const Transform &p_transform, const Vector3 &p_velocity, const Color &p_color, const Color &p_custom, uint32_t p_emit_flags) {
+void GPUParticles3D::emit_particle(const Transform3D &p_transform, const Vector3 &p_velocity, const Color &p_color, const Color &p_custom, uint32_t p_emit_flags) {
 	RS::get_singleton()->particles_emit(particles, p_transform, p_velocity, p_color, p_custom, p_emit_flags);
 }
 
@@ -458,7 +457,7 @@ void GPUParticles3D::_notification(int p_what) {
 }
 
 void GPUParticles3D::_skinning_changed() {
-	Vector<Transform> xforms;
+	Vector<Transform3D> xforms;
 	if (skin.is_valid()) {
 		xforms.resize(skin->get_bind_count());
 		for (int i = 0; i < skin->get_bind_count(); i++) {
@@ -470,7 +469,7 @@ void GPUParticles3D::_skinning_changed() {
 			if (draw_pass.is_valid() && draw_pass->get_builtin_bind_pose_count() > 0) {
 				xforms.resize(draw_pass->get_builtin_bind_pose_count());
 				for (int j = 0; j < draw_pass->get_builtin_bind_pose_count(); j++) {
-					xforms.write[i] = draw_pass->get_builtin_bind_pose(j);
+					xforms.write[j] = draw_pass->get_builtin_bind_pose(j);
 				}
 				break;
 			}
@@ -485,6 +484,7 @@ void GPUParticles3D::set_skin(const Ref<Skin> &p_skin) {
 	skin = p_skin;
 	_skinning_changed();
 }
+
 Ref<Skin> GPUParticles3D::get_skin() const {
 	return skin;
 }
@@ -552,7 +552,7 @@ void GPUParticles3D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("emit_particle", "xform", "velocity", "color", "custom", "flags"), &GPUParticles3D::emit_particle);
 
-	ClassDB::bind_method(D_METHOD("set_enable_trail", "enabled"), &GPUParticles3D::set_enable_trail);
+	ClassDB::bind_method(D_METHOD("set_trail_enabled", "enabled"), &GPUParticles3D::set_trail_enabled);
 	ClassDB::bind_method(D_METHOD("set_trail_length", "secs"), &GPUParticles3D::set_trail_length);
 
 	ClassDB::bind_method(D_METHOD("is_trail_enabled"), &GPUParticles3D::is_trail_enabled);
@@ -562,12 +562,12 @@ void GPUParticles3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_transform_align"), &GPUParticles3D::get_transform_align);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "emitting"), "set_emitting", "is_emitting");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "amount", PROPERTY_HINT_EXP_RANGE, "1,1000000,1"), "set_amount", "get_amount");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "amount", PROPERTY_HINT_RANGE, "1,1000000,1,exp"), "set_amount", "get_amount");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "sub_emitter", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "GPUParticles3D"), "set_sub_emitter", "get_sub_emitter");
 	ADD_GROUP("Time", "");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "lifetime", PROPERTY_HINT_EXP_RANGE, "0.01,600.0,0.01,or_greater"), "set_lifetime", "get_lifetime");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "lifetime", PROPERTY_HINT_RANGE, "0.01,600.0,0.01,or_greater,exp"), "set_lifetime", "get_lifetime");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "one_shot"), "set_one_shot", "get_one_shot");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "preprocess", PROPERTY_HINT_EXP_RANGE, "0.00,600.0,0.01"), "set_pre_process_time", "get_pre_process_time");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "preprocess", PROPERTY_HINT_RANGE, "0.00,600.0,0.01,exp"), "set_pre_process_time", "get_pre_process_time");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "speed_scale", PROPERTY_HINT_RANGE, "0,64,0.01"), "set_speed_scale", "get_speed_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "explosiveness", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_explosiveness_ratio", "get_explosiveness_ratio");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "randomness", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_randomness_ratio", "get_randomness_ratio");
@@ -579,11 +579,11 @@ void GPUParticles3D::_bind_methods() {
 	ADD_GROUP("Drawing", "");
 	ADD_PROPERTY(PropertyInfo(Variant::AABB, "visibility_aabb"), "set_visibility_aabb", "get_visibility_aabb");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "local_coords"), "set_use_local_coordinates", "get_use_local_coordinates");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "draw_order", PROPERTY_HINT_ENUM, "Index,Lifetime,View Depth"), "set_draw_order", "get_draw_order");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "draw_order", PROPERTY_HINT_ENUM, "Index,Lifetime,Reverse Lifetime,View Depth"), "set_draw_order", "get_draw_order");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "transform_align", PROPERTY_HINT_ENUM, "Disabled,ZBillboard,YToVelocity,ZBillboardYToVelocity"), "set_transform_align", "get_transform_align");
 	ADD_GROUP("Trails", "trail_");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "trail_enabled"), "set_enable_trail", "is_trail_enabled");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "trail_length_secs", PROPERTY_HINT_RANGE, "0.01,4,0.01"), "set_trail_length", "get_trail_length");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "trail_enabled"), "set_trail_enabled", "is_trail_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "trail_length_secs", PROPERTY_HINT_RANGE, "0.01,10,0.01"), "set_trail_length", "get_trail_length");
 	ADD_GROUP("Process Material", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "process_material", PROPERTY_HINT_RESOURCE_TYPE, "ShaderMaterial,ParticlesMaterial"), "set_process_material", "get_process_material");
 	ADD_GROUP("Draw Passes", "draw_");
@@ -595,6 +595,7 @@ void GPUParticles3D::_bind_methods() {
 
 	BIND_ENUM_CONSTANT(DRAW_ORDER_INDEX);
 	BIND_ENUM_CONSTANT(DRAW_ORDER_LIFETIME);
+	BIND_ENUM_CONSTANT(DRAW_ORDER_REVERSE_LIFETIME);
 	BIND_ENUM_CONSTANT(DRAW_ORDER_VIEW_DEPTH);
 
 	BIND_ENUM_CONSTANT(EMIT_FLAG_POSITION);
@@ -613,6 +614,7 @@ void GPUParticles3D::_bind_methods() {
 
 GPUParticles3D::GPUParticles3D() {
 	particles = RS::get_singleton()->particles_create();
+	RS::get_singleton()->particles_set_mode(particles, RS::PARTICLES_MODE_3D);
 	set_base(particles);
 	one_shot = false; // Needed so that set_emitting doesn't access uninitialized values
 	set_emitting(true);
@@ -631,7 +633,7 @@ GPUParticles3D::GPUParticles3D() {
 	set_draw_passes(1);
 	set_draw_order(DRAW_ORDER_INDEX);
 	set_speed_scale(1);
-	set_collision_base_size(0.01);
+	set_collision_base_size(collision_base_size);
 	set_transform_align(TRANSFORM_ALIGN_DISABLED);
 }
 
