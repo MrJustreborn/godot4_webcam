@@ -553,7 +553,7 @@ void V4l2_Device::stream_image(Ref<CameraFeed> feed) {
 
 void V4l2_Device::get_image(Ref<CameraFeed> feed, uint8_t *buffer) {
 	Ref<Image> img;
-	img.instance();
+	img.instantiate();
 
 	if (xioctl(fd, VIDIOC_G_FMT, &fmt) == -1) {
 		return;
@@ -687,7 +687,7 @@ void CameraX11::update_feeds() {
 			V4l2_Device *dev = memnew(V4l2_Device(devs[i].c_str(), &this->funcs));
 			if (dev->check_device(!alive)) {
 				Ref<CameraFeedX11> newfeed;
-				newfeed.instance();
+				newfeed.instantiate();
 				newfeed->set_device(dev);
 
 				// assume display camera so inverse
