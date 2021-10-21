@@ -328,6 +328,8 @@ void RenderForwardClustered::_render_list_template(RenderingDevice::DrawListID p
 		push_constant.uv_offset = 0;
 	}
 
+	bool should_request_redraw = false;
+
 	for (uint32_t i = p_from_element; i < p_to_element; i++) {
 		const GeometryInstanceSurfaceDataCache *surf = p_params->elements[i];
 		const RenderElementInfo &element_info = p_params->element_info[i];
@@ -363,6 +365,11 @@ void RenderForwardClustered::_render_list_template(RenderingDevice::DrawListID p
 
 		if (!mesh_surface) {
 			continue;
+		}
+
+		//request a redraw if one of the shaders uses TIME
+		if (shader->uses_time) {
+			should_request_redraw = true;
 		}
 
 		//find cull variant
@@ -499,6 +506,11 @@ void RenderForwardClustered::_render_list_template(RenderingDevice::DrawListID p
 
 		RD::get_singleton()->draw_list_draw(draw_list, index_array_rd.is_valid(), instance_count);
 		i += element_info.repeat - 1; //skip equal elements
+	}
+
+	// Make the actual redraw request
+	if (should_request_redraw) {
+		RenderingServerDefault::redraw_request();
 	}
 }
 
@@ -757,9 +769,6 @@ void RenderForwardClustered::_setup_environment(const RenderDataRD *p_render_dat
 		scene_state.ubo.fog_density = environment_get_fog_density(p_render_data->environment);
 		scene_state.ubo.fog_height = environment_get_fog_height(p_render_data->environment);
 		scene_state.ubo.fog_height_density = environment_get_fog_height_density(p_render_data->environment);
-		if (scene_state.ubo.fog_height_density >= 0.0001) {
-			scene_state.ubo.fog_height_density = 1.0 / scene_state.ubo.fog_height_density;
-		}
 		scene_state.ubo.fog_aerial_perspective = environment_get_fog_aerial_perspective(p_render_data->environment);
 
 		Color fog_color = environment_get_fog_light_color(p_render_data->environment).to_linear();
@@ -907,7 +916,7 @@ void RenderForwardClustered::_fill_render_list(RenderListType p_render_list, con
 	}
 	uint32_t lightmap_captures_used = 0;
 
-	Plane near_plane(p_render_data->cam_transform.origin, -p_render_data->cam_transform.basis.get_axis(Vector3::AXIS_Z));
+	Plane near_plane = Plane(-p_render_data->cam_transform.basis.get_axis(Vector3::AXIS_Z), p_render_data->cam_transform.origin);
 	near_plane.d += p_render_data->cam_projection.get_z_near();
 	float z_max = p_render_data->cam_projection.get_z_far() - p_render_data->cam_projection.get_z_near();
 

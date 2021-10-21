@@ -1421,7 +1421,7 @@ Error ShaderCompilerRD::compile(RS::ShaderMode p_mode, const String &p_code, Ide
 			}
 		}
 
-		_err_print_error(nullptr, p_path.utf8().get_data(), parser.get_error_line(), parser.get_error_text().utf8().get_data(), ERR_HANDLER_SHADER);
+		_err_print_error(nullptr, p_path.utf8().get_data(), parser.get_error_line(), parser.get_error_text().utf8().get_data(), false, ERR_HANDLER_SHADER);
 		return err;
 	}
 
@@ -1463,6 +1463,7 @@ void ShaderCompilerRD::initialize(DefaultIdentifierActions p_actions) {
 	texture_functions.insert("textureLod");
 	texture_functions.insert("textureProjLod");
 	texture_functions.insert("textureGrad");
+	texture_functions.insert("textureGather");
 	texture_functions.insert("textureSize");
 	texture_functions.insert("texelFetch");
 }

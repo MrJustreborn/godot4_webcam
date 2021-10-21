@@ -2076,7 +2076,7 @@ void RendererSceneCull::_light_instance_setup_directional_shadow(int p_shadow_in
 
 			// This trick here is what stabilizes the shadow (make potential jaggies to not move)
 			// at the cost of some wasted resolution. Still, the quality increase is very well worth it.
-			const real_t unit = radius * 2.0 / texture_size;
+			const real_t unit = (radius + soft_shadow_expand) * 2.0 / texture_size;
 			x_max_cam = Math::snapped(x_vec.dot(center) + radius + soft_shadow_expand, unit);
 			x_min_cam = Math::snapped(x_vec.dot(center) - radius - soft_shadow_expand, unit);
 			y_max_cam = Math::snapped(y_vec.dot(center) + radius + soft_shadow_expand, unit);
@@ -2952,7 +2952,7 @@ void RendererSceneCull::_render_scene(const RendererSceneRender::CameraData *p_c
 
 				Transform3D cam_xf = p_camera_data->main_transform;
 				float zn = p_camera_data->main_projection.get_z_near();
-				Plane p(cam_xf.origin + cam_xf.basis.get_axis(2) * -zn, -cam_xf.basis.get_axis(2)); //camera near plane
+				Plane p(-cam_xf.basis.get_axis(2), cam_xf.origin + cam_xf.basis.get_axis(2) * -zn); //camera near plane
 
 				// near plane half width and height
 				Vector2 vp_half_extents = p_camera_data->main_projection.get_viewport_half_extents();

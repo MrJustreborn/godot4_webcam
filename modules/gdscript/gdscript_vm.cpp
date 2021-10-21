@@ -2098,8 +2098,10 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 					}
 
 					if (result.get_type() != Variant::SIGNAL) {
+						// Not async, return immediately using the target from OPCODE_AWAIT_RESUME.
+						GET_VARIANT_PTR(target, 3);
+						*target = result;
 						ip += 4; // Skip OPCODE_AWAIT_RESUME and its data.
-						// The stack pointer should be the same, so we don't need to set a return value.
 						is_signal = false;
 					} else {
 						sig = result;
@@ -3313,7 +3315,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 		if (!GDScriptLanguage::get_singleton()->debug_break(err_text, false)) {
 			// debugger break did not happen
 
-			_err_print_error(err_func.utf8().get_data(), err_file.utf8().get_data(), err_line, err_text.utf8().get_data(), ERR_HANDLER_SCRIPT);
+			_err_print_error(err_func.utf8().get_data(), err_file.utf8().get_data(), err_line, err_text.utf8().get_data(), false, ERR_HANDLER_SCRIPT);
 		}
 
 #endif
