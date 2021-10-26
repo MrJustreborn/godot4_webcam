@@ -43,9 +43,8 @@
 		</method>
 		<method name="Quaternion" qualifiers="constructor">
 			<return type="Quaternion" />
-			<argument index="0" name="euler" type="Vector3" />
+			<argument index="0" name="euler_yxz" type="Vector3" />
 			<description>
-				Constructs a quaternion that will perform a rotation specified by Euler angles (in the YXZ convention: when decomposing, first Z, then X, and Y last), given in the vector format as (X angle, Y angle, Z angle).
 			</description>
 		</method>
 		<method name="Quaternion" qualifiers="constructor">
@@ -88,6 +87,16 @@
 			<argument index="0" name="with" type="Quaternion" />
 			<description>
 				Returns the dot product of two quaternions.
+			</description>
+		</method>
+		<method name="get_angle" qualifiers="const">
+			<return type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="get_axis" qualifiers="const">
+			<return type="Vector3" />
+			<description>
 			</description>
 		</method>
 		<method name="get_euler" qualifiers="const">
