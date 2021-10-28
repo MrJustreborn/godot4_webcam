@@ -144,7 +144,6 @@
 #include "editor/plugins/gpu_particles_collision_sdf_editor_plugin.h"
 #include "editor/plugins/gradient_editor_plugin.h"
 #include "editor/plugins/input_event_editor_plugin.h"
-#include "editor/plugins/item_list_editor_plugin.h"
 #include "editor/plugins/light_occluder_2d_editor_plugin.h"
 #include "editor/plugins/lightmap_gi_editor_plugin.h"
 #include "editor/plugins/line_2d_editor_plugin.h"
@@ -4965,9 +4964,9 @@ void EditorNode::_scene_tab_closed(int p_tab, int option) {
 		return;
 	}
 
-	bool unsaved = (p_tab == editor_data.get_edited_scene()) ?
-							 saved_version != editor_data.get_undo_redo().get_version() :
-							 editor_data.get_scene_version(p_tab) != 0;
+	bool unsaved = (p_tab == editor_data.get_edited_scene())
+			? saved_version != editor_data.get_undo_redo().get_version()
+			: editor_data.get_scene_version(p_tab) != 0;
 	if (unsaved) {
 		save_confirmation->get_ok_button()->set_text(TTR("Save & Close"));
 		save_confirmation->set_text(vformat(TTR("Save changes to '%s' before closing?"), scene->get_scene_file_path() != "" ? scene->get_scene_file_path() : "unsaved scene"));
@@ -6960,7 +6959,6 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(CPUParticles2DEditorPlugin(this)));
 	add_editor_plugin(memnew(CPUParticles3DEditorPlugin(this)));
 	add_editor_plugin(memnew(ResourcePreloaderEditorPlugin(this)));
-	add_editor_plugin(memnew(ItemListEditorPlugin(this)));
 	add_editor_plugin(memnew(Polygon3DEditorPlugin(this)));
 	add_editor_plugin(memnew(CollisionPolygon2DEditorPlugin(this)));
 	add_editor_plugin(memnew(TilesEditorPlugin(this)));

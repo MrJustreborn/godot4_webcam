@@ -616,7 +616,7 @@ String DisplayServerX11::clipboard_get_primary() const {
 Bool DisplayServerX11::_predicate_clipboard_save_targets(Display *display, XEvent *event, XPointer arg) {
 	if (event->xany.window == *(Window *)arg) {
 		return (event->type == SelectionRequest) ||
-			   (event->type == SelectionNotify);
+				(event->type == SelectionNotify);
 	} else {
 		return False;
 	}
@@ -2485,11 +2485,11 @@ Atom DisplayServerX11::_process_selection_request_target(Atom p_target, Window p
 				0);
 		return p_property;
 	} else if (p_target == XInternAtom(x11_display, "UTF8_STRING", 0) ||
-			   p_target == XInternAtom(x11_display, "COMPOUND_TEXT", 0) ||
-			   p_target == XInternAtom(x11_display, "TEXT", 0) ||
-			   p_target == XA_STRING ||
-			   p_target == XInternAtom(x11_display, "text/plain;charset=utf-8", 0) ||
-			   p_target == XInternAtom(x11_display, "text/plain", 0)) {
+			p_target == XInternAtom(x11_display, "COMPOUND_TEXT", 0) ||
+			p_target == XInternAtom(x11_display, "TEXT", 0) ||
+			p_target == XA_STRING ||
+			p_target == XInternAtom(x11_display, "text/plain;charset=utf-8", 0) ||
+			p_target == XInternAtom(x11_display, "text/plain", 0)) {
 		// Directly using internal clipboard because we know our window
 		// is the owner during a selection request.
 		CharString clip;
@@ -2725,27 +2725,34 @@ void DisplayServerX11::_poll_events() {
 		{
 			MutexLock mutex_lock(events_mutex);
 
-			// Non-blocking wait for next event and remove it from the queue.
-			XEvent ev;
-			while (XCheckIfEvent(x11_display, &ev, _predicate_all_events, nullptr)) {
-				// Check if the input manager wants to process the event.
-				if (XFilterEvent(&ev, None)) {
-					// Event has been filtered by the Input Manager,
-					// it has to be ignored and a new one will be received.
-					continue;
-				}
-
-				// Handle selection request events directly in the event thread, because
-				// communication through the x server takes several events sent back and forth
-				// and we don't want to block other programs while processing only one each frame.
-				if (ev.type == SelectionRequest) {
-					_handle_selection_request_event(&(ev.xselectionrequest));
-					continue;
-				}
-
-				polled_events.push_back(ev);
-			}
+			_check_pending_events(polled_events);
 		}
+	}
+}
+
+void DisplayServerX11::_check_pending_events(LocalVector<XEvent> &r_events) {
+	// Flush to make sure to gather all pending events.
+	XFlush(x11_display);
+
+	// Non-blocking wait for next event and remove it from the queue.
+	XEvent ev;
+	while (XCheckIfEvent(x11_display, &ev, _predicate_all_events, nullptr)) {
+		// Check if the input manager wants to process the event.
+		if (XFilterEvent(&ev, None)) {
+			// Event has been filtered by the Input Manager,
+			// it has to be ignored and a new one will be received.
+			continue;
+		}
+
+		// Handle selection request events directly in the event thread, because
+		// communication through the x server takes several events sent back and forth
+		// and we don't want to block other programs while processing only one each frame.
+		if (ev.type == SelectionRequest) {
+			_handle_selection_request_event(&(ev.xselectionrequest));
+			continue;
+		}
+
+		r_events.push_back(ev);
 	}
 }
 
@@ -2798,6 +2805,9 @@ void DisplayServerX11::process_events() {
 		MutexLock mutex_lock(events_mutex);
 		events = polled_events;
 		polled_events.clear();
+
+		// Check for more pending events to avoid an extra frame delay.
+		_check_pending_events(events);
 	}
 
 	for (uint32_t event_index = 0; event_index < events.size(); ++event_index) {
@@ -2857,7 +2867,7 @@ void DisplayServerX11::process_events() {
 								if (pen_pressure_range != Vector2()) {
 									xi.pressure_supported = true;
 									xi.pressure = (*values - pen_pressure_range[0]) /
-												  (pen_pressure_range[1] - pen_pressure_range[0]);
+											(pen_pressure_range[1] - pen_pressure_range[0]);
 								}
 							}
 
@@ -2916,10 +2926,7 @@ void DisplayServerX11::process_events() {
 						xi.last_relative_time = raw_event->time;
 					} break;
 #ifdef TOUCH_ENABLED
-					case XI_TouchBegin: // Fall-through
-							// Disabled hand-in-hand with the grabbing
-							//XIAllowTouchEvents(x11_display, event_data->deviceid, event_data->detail, x11_window, XIAcceptTouch);
-
+					case XI_TouchBegin:
 					case XI_TouchEnd: {
 						bool is_begin = event_data->evtype == XI_TouchBegin;
 
@@ -3746,18 +3753,18 @@ DisplayServerX11::WindowID DisplayServerX11::_create_window(WindowMode p_mode, V
 			XSetWindowAttributes new_attr;
 
 			new_attr.event_mask = KeyPressMask | KeyReleaseMask | ButtonPressMask |
-								  ButtonReleaseMask | EnterWindowMask |
-								  LeaveWindowMask | PointerMotionMask |
-								  Button1MotionMask |
-								  Button2MotionMask | Button3MotionMask |
-								  Button4MotionMask | Button5MotionMask |
-								  ButtonMotionMask | KeymapStateMask |
-								  ExposureMask | VisibilityChangeMask |
-								  StructureNotifyMask |
-								  SubstructureNotifyMask | SubstructureRedirectMask |
-								  FocusChangeMask | PropertyChangeMask |
-								  ColormapChangeMask | OwnerGrabButtonMask |
-								  im_event_mask;
+					ButtonReleaseMask | EnterWindowMask |
+					LeaveWindowMask | PointerMotionMask |
+					Button1MotionMask |
+					Button2MotionMask | Button3MotionMask |
+					Button4MotionMask | Button5MotionMask |
+					ButtonMotionMask | KeymapStateMask |
+					ExposureMask | VisibilityChangeMask |
+					StructureNotifyMask |
+					SubstructureNotifyMask | SubstructureRedirectMask |
+					FocusChangeMask | PropertyChangeMask |
+					ColormapChangeMask | OwnerGrabButtonMask |
+					im_event_mask;
 
 			XChangeWindowAttributes(x11_display, wd.x11_window, CWEventMask, &new_attr);
 
@@ -4127,7 +4134,6 @@ DisplayServerX11::DisplayServerX11(const String &p_rendering_driver, WindowMode 
 	}
 	show_window(main_window);
 
-//create RenderingDevice if used
 #if defined(VULKAN_ENABLED)
 	if (rendering_driver == "vulkan") {
 		//temporary
@@ -4137,13 +4143,6 @@ DisplayServerX11::DisplayServerX11(const String &p_rendering_driver, WindowMode 
 		RendererCompositorRD::make_current();
 	}
 #endif
-
-	/*
-	rendering_server = memnew(RenderingServerDefault);
-	if (get_render_thread_mode() != RENDER_THREAD_UNSAFE) {
-		rendering_server = memnew(RenderingServerWrapMT(rendering_server, get_render_thread_mode() == RENDER_SEPARATE_THREAD));
-	}
-	*/
 
 	{
 		//set all event master mask
@@ -4156,15 +4155,6 @@ DisplayServerX11::DisplayServerX11(const String &p_rendering_driver, WindowMode 
 		XISetMask(all_master_event_mask.mask, XI_RawMotion);
 		XISelectEvents(x11_display, DefaultRootWindow(x11_display), &all_master_event_mask, 1);
 	}
-
-	// Disabled by now since grabbing also blocks mouse events
-	// (they are received as extended events instead of standard events)
-	/*XIClearMask(xi.touch_event_mask.mask, XI_TouchOwnership);
-
-	// Grab touch devices to avoid OS gesture interference
-	for (int i = 0; i < xi.touch_devices.size(); ++i) {
-		XIGrabDevice(x11_display, xi.touch_devices[i], x11_window, CurrentTime, None, XIGrabModeAsync, XIGrabModeAsync, False, &xi.touch_event_mask);
-	}*/
 
 	cursor_size = XcursorGetDefaultSize(x11_display);
 	cursor_theme = XcursorGetTheme(x11_display);
