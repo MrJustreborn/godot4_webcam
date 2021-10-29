@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  glue_header.h                                                        */
+/*  fog_volume.h                                                         */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,59 +28,45 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifdef MONO_GLUE_ENABLED
+#ifndef FOG_VOLUME_H
+#define FOG_VOLUME_H
 
-#include "../mono_gd/gd_mono_marshal.h"
+#include "core/templates/rid.h"
+#include "scene/3d/visual_instance_3d.h"
+#include "scene/main/node.h"
+#include "scene/main/viewport.h"
+#include "scene/resources/material.h"
 
-void godot_register_collections_icalls();
-void godot_register_gd_icalls();
-void godot_register_string_name_icalls();
-void godot_register_nodepath_icalls();
-void godot_register_callable_icalls();
-void godot_register_object_icalls();
-void godot_register_rid_icalls();
-void godot_register_string_icalls();
-void godot_register_scene_tree_icalls();
+class FogVolume : public VisualInstance3D {
+	GDCLASS(FogVolume, VisualInstance3D);
 
-/**
- * Registers internal calls that were not generated. This function is called
- * from the generated GodotSharpBindings::register_generated_icalls() function.
- */
-void godot_register_glue_header_icalls() {
-	godot_register_collections_icalls();
-	godot_register_gd_icalls();
-	godot_register_string_name_icalls();
-	godot_register_nodepath_icalls();
-	godot_register_callable_icalls();
-	godot_register_object_icalls();
-	godot_register_rid_icalls();
-	godot_register_string_icalls();
-	godot_register_scene_tree_icalls();
-}
+	Vector3 extents = Vector3(1, 1, 1);
+	Ref<Material> material;
+	RS::FogVolumeShape shape = RS::FOG_VOLUME_SHAPE_BOX;
 
-// Used by the generated glue
+	RID volume;
 
-#include "core/config/engine.h"
-#include "core/object/class_db.h"
-#include "core/object/method_bind.h"
-#include "core/object/ref_counted.h"
-#include "core/string/node_path.h"
-#include "core/string/ustring.h"
-#include "core/typedefs.h"
-#include "core/variant/array.h"
-#include "core/variant/dictionary.h"
+protected:
+	_FORCE_INLINE_ RID _get_volume() { return volume; }
+	static void _bind_methods();
+	virtual void _validate_property(PropertyInfo &property) const override;
 
-#include "../mono_gd/gd_mono_class.h"
-#include "../mono_gd/gd_mono_internals.h"
-#include "../mono_gd/gd_mono_utils.h"
+public:
+	void set_extents(const Vector3 &p_extents);
+	Vector3 get_extents() const;
 
-#define GODOTSHARP_INSTANCE_OBJECT(m_instance, m_type) \
-	static ClassDB::ClassInfo *ci = nullptr;           \
-	if (!ci) {                                         \
-		ci = ClassDB::classes.getptr(m_type);          \
-	}                                                  \
-	Object *m_instance = ci->creation_func();
+	void set_shape(RS::FogVolumeShape p_type);
+	RS::FogVolumeShape get_shape() const;
 
-#include "arguments_vector.h"
+	void set_material(const Ref<Material> &p_material);
+	Ref<Material> get_material() const;
 
-#endif // MONO_GLUE_ENABLED
+	virtual AABB get_aabb() const override;
+	virtual Vector<Face3> get_faces(uint32_t p_usage_flags) const override { return Vector<Face3>(); }
+	TypedArray<String> get_configuration_warnings() const override;
+
+	FogVolume();
+	~FogVolume();
+};
+
+#endif // FOG_VOLUME_H

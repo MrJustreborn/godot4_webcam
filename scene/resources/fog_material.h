@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  glue_header.h                                                        */
+/*  fog_material.h                                                       */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,59 +28,60 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifdef MONO_GLUE_ENABLED
+#ifndef FOG_MATERIAL_H
+#define FOG_MATERIAL_H
 
-#include "../mono_gd/gd_mono_marshal.h"
+#include "scene/resources/material.h"
 
-void godot_register_collections_icalls();
-void godot_register_gd_icalls();
-void godot_register_string_name_icalls();
-void godot_register_nodepath_icalls();
-void godot_register_callable_icalls();
-void godot_register_object_icalls();
-void godot_register_rid_icalls();
-void godot_register_string_icalls();
-void godot_register_scene_tree_icalls();
+class FogMaterial : public Material {
+	GDCLASS(FogMaterial, Material);
 
-/**
- * Registers internal calls that were not generated. This function is called
- * from the generated GodotSharpBindings::register_generated_icalls() function.
- */
-void godot_register_glue_header_icalls() {
-	godot_register_collections_icalls();
-	godot_register_gd_icalls();
-	godot_register_string_name_icalls();
-	godot_register_nodepath_icalls();
-	godot_register_callable_icalls();
-	godot_register_object_icalls();
-	godot_register_rid_icalls();
-	godot_register_string_icalls();
-	godot_register_scene_tree_icalls();
-}
+private:
+	float density = 1.0;
+	Color albedo = Color(1, 1, 1, 1);
+	Color emission = Color(0, 0, 0, 0);
 
-// Used by the generated glue
+	float height_falloff = 0.0;
 
-#include "core/config/engine.h"
-#include "core/object/class_db.h"
-#include "core/object/method_bind.h"
-#include "core/object/ref_counted.h"
-#include "core/string/node_path.h"
-#include "core/string/ustring.h"
-#include "core/typedefs.h"
-#include "core/variant/array.h"
-#include "core/variant/dictionary.h"
+	float edge_fade = 0.1;
 
-#include "../mono_gd/gd_mono_class.h"
-#include "../mono_gd/gd_mono_internals.h"
-#include "../mono_gd/gd_mono_utils.h"
+	Ref<Texture3D> density_texture;
 
-#define GODOTSHARP_INSTANCE_OBJECT(m_instance, m_type) \
-	static ClassDB::ClassInfo *ci = nullptr;           \
-	if (!ci) {                                         \
-		ci = ClassDB::classes.getptr(m_type);          \
-	}                                                  \
-	Object *m_instance = ci->creation_func();
+	static Mutex shader_mutex;
+	static RID shader;
+	static void _update_shader();
+	mutable bool shader_set = false;
 
-#include "arguments_vector.h"
+protected:
+	static void _bind_methods();
 
-#endif // MONO_GLUE_ENABLED
+public:
+	void set_density(float p_density);
+	float get_density() const;
+
+	void set_albedo(Color p_color);
+	Color get_albedo() const;
+
+	void set_emission(Color p_color);
+	Color get_emission() const;
+
+	void set_height_falloff(float p_falloff);
+	float get_height_falloff() const;
+
+	void set_edge_fade(float p_edge_fade);
+	float get_edge_fade() const;
+
+	void set_density_texture(const Ref<Texture3D> &p_texture);
+	Ref<Texture3D> get_density_texture() const;
+
+	virtual Shader::Mode get_shader_mode() const override;
+	virtual RID get_shader_rid() const override;
+	virtual RID get_rid() const override;
+
+	static void cleanup_shader();
+
+	FogMaterial();
+	virtual ~FogMaterial();
+};
+
+#endif // FOG_MATERIAL_H
