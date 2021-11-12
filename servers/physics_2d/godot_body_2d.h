@@ -145,8 +145,6 @@ class GodotBody2D : public GodotCollisionObject2D {
 
 	uint64_t island_step = 0;
 
-	void _compute_area_gravity_and_damping(const GodotArea2D *p_area);
-
 	void _update_transform_dependent();
 
 	friend class GodotPhysicsDirectBodyState2D; // i give up, too many functions to expose
@@ -282,6 +280,7 @@ public:
 	void reset_mass_properties();
 
 	_FORCE_INLINE_ const Vector2 &get_center_of_mass() const { return center_of_mass; }
+	_FORCE_INLINE_ const Vector2 &get_center_of_mass_local() const { return center_of_mass_local; }
 	_FORCE_INLINE_ real_t get_inv_mass() const { return _inv_mass; }
 	_FORCE_INLINE_ real_t get_inv_inertia() const { return _inv_inertia; }
 	_FORCE_INLINE_ real_t get_friction() const { return friction; }

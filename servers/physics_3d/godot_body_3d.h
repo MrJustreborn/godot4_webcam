@@ -139,8 +139,6 @@ class GodotBody3D : public GodotCollisionObject3D {
 
 	uint64_t island_step = 0;
 
-	void _compute_area_gravity_and_damping(const GodotArea3D *p_area);
-
 	void _update_transform_dependent();
 
 	friend class GodotPhysicsDirectBodyState3D; // i give up, too many functions to expose
@@ -200,6 +198,7 @@ public:
 
 	_FORCE_INLINE_ Basis get_principal_inertia_axes() const { return principal_inertia_axes; }
 	_FORCE_INLINE_ Vector3 get_center_of_mass() const { return center_of_mass; }
+	_FORCE_INLINE_ Vector3 get_center_of_mass_local() const { return center_of_mass_local; }
 	_FORCE_INLINE_ Vector3 xform_local_to_principal(const Vector3 &p_pos) const { return principal_inertia_axes_local.xform(p_pos - center_of_mass_local); }
 
 	_FORCE_INLINE_ void set_linear_velocity(const Vector3 &p_velocity) { linear_velocity = p_velocity; }

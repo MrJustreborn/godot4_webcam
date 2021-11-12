@@ -752,8 +752,9 @@ struct _VariantCall {
 
 	static PackedInt32Array func_PackedByteArray_decode_s32_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
-		const uint8_t *r = p_instance->ptr();
 		PackedInt32Array dest;
+		ERR_FAIL_COND_V_MSG(size < sizeof(int32_t), dest, "Size didn't match array of size int32_t, maybe you are trying to convert to the wrong type?");
+		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(int32_t));
 		memcpy(dest.ptrw(), r, size);
 		return dest;
@@ -761,8 +762,9 @@ struct _VariantCall {
 
 	static PackedInt64Array func_PackedByteArray_decode_s64_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
-		const uint8_t *r = p_instance->ptr();
 		PackedInt64Array dest;
+		ERR_FAIL_COND_V_MSG(size < sizeof(int64_t), dest, "Size didn't match array of size int64_t, maybe you are trying to convert to the wrong type?");
+		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(int64_t));
 		memcpy(dest.ptrw(), r, size);
 		return dest;
@@ -770,8 +772,9 @@ struct _VariantCall {
 
 	static PackedFloat32Array func_PackedByteArray_decode_float_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
-		const uint8_t *r = p_instance->ptr();
 		PackedFloat32Array dest;
+		ERR_FAIL_COND_V_MSG(size < sizeof(float), dest, "Size didn't match array of size float, maybe you are trying to convert to the wrong type?");
+		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(float));
 		memcpy(dest.ptrw(), r, size);
 		return dest;
@@ -779,8 +782,9 @@ struct _VariantCall {
 
 	static PackedFloat64Array func_PackedByteArray_decode_double_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
-		const uint8_t *r = p_instance->ptr();
 		PackedFloat64Array dest;
+		ERR_FAIL_COND_V_MSG(size < sizeof(double), dest, "Size didn't match array of size double, maybe you are trying to convert to the wrong type?");
+		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(double));
 		memcpy(dest.ptrw(), r, size);
 		return dest;
@@ -1408,8 +1412,6 @@ static void _register_variant_builtin_methods() {
 	bind_method(String, plus_file, sarray("file"), varray());
 	bind_method(String, unicode_at, sarray("at"), varray());
 	bind_method(String, dedent, sarray(), varray());
-	// FIXME: String needs to be immutable when binding
-	//bind_method(String, erase, sarray("position", "chars"), varray());
 	bind_method(String, hash, sarray(), varray());
 	bind_method(String, md5_text, sarray(), varray());
 	bind_method(String, sha1_text, sarray(), varray());
@@ -1418,8 +1420,6 @@ static void _register_variant_builtin_methods() {
 	bind_method(String, sha1_buffer, sarray(), varray());
 	bind_method(String, sha256_buffer, sarray(), varray());
 	bind_method(String, is_empty, sarray(), varray());
-	// FIXME: Static function, not sure how to bind
-	//bind_method(String, humanize_size, sarray("size"), varray());
 
 	bind_method(String, is_absolute_path, sarray(), varray());
 	bind_method(String, is_relative_path, sarray(), varray());
@@ -1631,17 +1631,15 @@ static void _register_variant_builtin_methods() {
 	bind_method(Color, to_argb64, sarray(), varray());
 	bind_method(Color, to_abgr64, sarray(), varray());
 	bind_method(Color, to_rgba64, sarray(), varray());
+	bind_method(Color, to_html, sarray("with_alpha"), varray(true));
 
 	bind_method(Color, clamp, sarray("min", "max"), varray(Color(0, 0, 0, 0), Color(1, 1, 1, 1)));
 	bind_method(Color, inverted, sarray(), varray());
 	bind_method(Color, lerp, sarray("to", "weight"), varray());
 	bind_method(Color, lightened, sarray("amount"), varray());
 	bind_method(Color, darkened, sarray("amount"), varray());
-	bind_method(Color, to_html, sarray("with_alpha"), varray(true));
 	bind_method(Color, blend, sarray("over"), varray());
 
-	// FIXME: Color is immutable, need to probably find a way to do this via constructor
-	//ADDFUNC4R(COLOR, COLOR, Color, from_hsv, FLOAT, "h", FLOAT, "s", FLOAT, "v", FLOAT, "a", varray(1.0));
 	bind_method(Color, is_equal_approx, sarray("to"), varray());
 
 	bind_static_method(Color, hex, sarray("hex"), varray());
@@ -1653,6 +1651,7 @@ static void _register_variant_builtin_methods() {
 	bind_static_method(Color, get_named_color_name, sarray("idx"), varray());
 	bind_static_method(Color, get_named_color, sarray("idx"), varray());
 	bind_static_method(Color, from_string, sarray("str", "default"), varray());
+	bind_static_method(Color, from_hsv, sarray("h", "s", "v", "alpha"), varray(1.0));
 	bind_static_method(Color, from_rgbe9995, sarray("rgbe"), varray());
 
 	/* RID */
